@@ -137,5 +137,88 @@ __attribute__((constructor)) void init() {
   alarm(60);
 }
 ```
+* win関数を呼び出すことができれば、シェルを奪い、フラッグをゲットすることができるみたいだ。
+* kanariaが存在するみたいなのでこれを頑張ってよけるべきみたいだ。
+* buffer自体は、32byteだ。
+
+## (2) 実行してみる
+```
+─$ ./rewriter2
+
+ [Addr]             | [Value]
+====================+===================
+ 0x00007fff477e0f90 | 0x0000000000000000  <- buf
+ 0x00007fff477e0f98 | 0x00007f07de3b85c0
+ 0x00007fff477e0fa0 | 0x0000000000000000
+ 0x00007fff477e0fa8 | 0x00007f07de264c2a
+ 0x00007fff477e0fb0 | 0x0000000000000000
+ 0x00007fff477e0fb8 | xxxxx hidden xxxxx  <- canary
+ 0x00007fff477e0fc0 | 0x0000000000000001  <- saved rbp
+ 0x00007fff477e0fc8 | 0x00007f07de208c8a  <- saved ret addr
+ 0x00007fff477e0fd0 | 0x0000000000000000
+ 0x00007fff477e0fd8 | 0x00000000004011f6
+
+What's your name? aaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Hello, aaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 
+ [Addr]             | [Value]
+====================+===================
+ 0x00007fff477e0f90 | 0x6161616161616161  <- buf
+ 0x00007fff477e0f98 | 0x6161616161616161
+ 0x00007fff477e0fa0 | 0x6161616161616161
+ 0x00007fff477e0fa8 | 0x00000a6161616161
+ 0x00007fff477e0fb0 | 0x0000000000000000
+ 0x00007fff477e0fb8 | xxxxx hidden xxxxx  <- canary
+ 0x00007fff477e0fc0 | 0x0000000000000001  <- saved rbp
+ 0x00007fff477e0fc8 | 0x00007f07de208c8a  <- saved ret addr
+ 0x00007fff477e0fd0 | 0x0000000000000000
+ 0x00007fff477e0fd8 | 0x00000000004011f6
+
+How old are you? aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+Thank you!
+
+ [Addr]             | [Value]
+====================+===================
+ 0x00007fff477e0f90 | 0x6161616161616161  <- buf
+ 0x00007fff477e0f98 | 0x6161616161616161
+ 0x00007fff477e0fa0 | 0x6161616161616161
+ 0x00007fff477e0fa8 | 0x6161616161616161
+ 0x00007fff477e0fb0 | 0x6161616161616161
+ 0x00007fff477e0fb8 | xxxxx hidden xxxxx  <- canary
+ 0x00007fff477e0fc0 | 0x6161616161616161  <- saved rbp
+ 0x00007fff477e0fc8 | 0x6161616161616161  <- saved ret addr
+ 0x00007fff477e0fd0 | 0x6161616161616161
+ 0x00007fff477e0fd8 | 0x6161616161616161
+
+*** stack smashing detected ***: terminated
+Aborted (core dumped)
+```
+* カナリアからのアドレスの差「-0x28」
+* ベースポインタを格納するアドレスの差「-0x30」
+* リターンアドレスを格納するアドレスの差「-0x38」
+
+## (3) アセンブリを確認する
+```
+-$objdump -D -M intel rewriter2
+
+--------------------- 省略 -----------------------------
+
+00000000004012c2 <win>:
+  4012c2:       f3 0f 1e fa             endbr64
+  4012c6:       55                      push   rbp
+  4012c7:       48 89 e5                mov    rbp,rsp
+  4012ca:       48 8d 3d 72 0d 00 00    lea    rdi,[rip+0xd72]        # 402043 <_IO_stdin_used+0x43>
+  4012d1:       e8 ca fd ff ff          call   4010a0 <puts@plt>
+  4012d6:       48 8d 3d 77 0d 00 00    lea    rdi,[rip+0xd77]        # 402054 <_IO_stdin_used+0x54>
+  4012dd:       e8 de fd ff ff          call   4010c0 <system@plt>
+  4012e2:       90                      nop
+  4012e3:       5d                      pop    rbp
+  4012e4:       c3                      ret
+
+--------------------- 省略 -----------------------------
+```
+
+* winのアドレス「4012c2」
+
+## (4) 
