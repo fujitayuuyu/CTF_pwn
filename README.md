@@ -28,7 +28,7 @@ pythonでは、「"\x03"」とすることで任意のバイナリデータを�
 ```
 print('A'*16 + '\xce\xfa\xde\xc0')
 ```
-
+※ エンディアン変換による順番の変化には気を付けよう
 ## (4) pwntools(python)によるエクスプロイトの送信
 https://qiita.com/8ayac/items/12a3523394080e56ad5a
 
